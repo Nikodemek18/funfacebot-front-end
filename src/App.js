@@ -67,13 +67,13 @@ class App extends Component{
   fileUploadHandler = context => async e => {
     const files = Array.from(e.target.files)
     // this.setState({uploading: true});
-    let publicKey = '03a34d6aef3eb42335fb3cacb59478c0b44c0bbeb8bb4ca427dbc7044157a5d24b';
+    let publicKey = '4a187d21eaed110584c7b534dda1bd030e6b0cdf47c700fb48ea4bbad7e40908025299137f44db8708b8e015c4143cbab9f403e716b936af2b35a31606aacbd2';
 
     //will need to convert to FormData object once decrypted server-side.
     //unfortunately, cannot directly encrypt FormData object client-side
-    const encryptedFiles = [];
+    let encryptedFiles = [];
 
-    files.forEach(async (file, i) => {
+    await files.forEach(async (file, i) => {
       let msg = [i, file];
       let encryptedFile = await EthCrypto.encryptWithPublicKey(publicKey, msg);
       encryptedFiles.push(encryptedFile);
@@ -83,7 +83,11 @@ class App extends Component{
     box.onSyncDone(async () => {
       const workSpace = await box.openSpace(contracts.accessControls.address.toString() + this.state.spaceId.toString());
       let temp = await workSpace.public.get('files');
-      let newEncryptedFiles = temp.push(encryptedFiles)
+      if (temp === undefined){
+        temp = [];
+      }
+      console.log(temp);
+        let newEncryptedFiles = temp.concat(encryptedFiles);
       await workSpace.public.set('files', newEncryptedFiles);
     })
   }
@@ -98,12 +102,11 @@ class App extends Component{
     // console.log(context.account);
     let box = await Box.openBox(context.account, window.ethereum);
     box.onSyncDone(async () => {
-      await box.public.set('name', 'capowalooba');
-      // await box.private.set('secrets', 'arenofun');
+      const workSpace = await box.openSpace(contracts.accessControls.address.toString() + this.state.spaceId.toString());
+      let x = await workSpace.public.get('files');
+      console.log(x);
     })
 
-    let name = await box.private.get('secrets');
-    // console.log(name);
 
 
   }
