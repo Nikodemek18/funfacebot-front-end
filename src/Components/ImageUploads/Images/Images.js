@@ -6,7 +6,10 @@ export default props =>
   props.images.map((image, i) =>
     <div key={i} className='fadein'>
       <div 
-        onClick={() => props.removeImage(image.public_id)} 
+        onClick={
+          () => props.removeImage(image.public_id),
+          console.log(image)
+        } 
         className='delete'
       >
         {/* <FontAwesomeIcon icon={faTimesCircle} size='2x' /> */}

@@ -13,6 +13,7 @@ import Buttons from './Components/ImageUploads/Buttons/Buttons';
 import BoxStore from './Components/BoxStore/BoxStore';
 import EthCrypto from 'eth-crypto';
 import Box from '3box';
+import { callbackify } from 'util';
 
 
 
@@ -64,21 +65,36 @@ class App extends Component{
     })
   }
 
+  encodeImageFileAsUrl = (file) => {
+    let reader = new FileReader();
+    reader.onloadend = async function() {
+      let res = await EthCrypto.encryptWithPublicKey('49abc6fcf7d0783249febba656122e4dd8329e88502b7f3fc1803829f651c44b87774aefaefb72197ec19cbbf5747a74895c2784f6765f543a655789b1c41fff', reader.result)
+      return res;
+    }
+    reader.readAsDataURL(file);
+  }
+
+
   fileUploadHandler = context => async e => {
-    const files = Array.from(e.target.files)
+    const files = Array.from(e.target.files);
+
     // this.setState({uploading: true});
-    let publicKey = '4a187d21eaed110584c7b534dda1bd030e6b0cdf47c700fb48ea4bbad7e40908025299137f44db8708b8e015c4143cbab9f403e716b936af2b35a31606aacbd2';
+    const publicKey = 'a4cdd31d8e9e68874cdc7feea0fafea52d10f01416e562c61a5e4ae5ad736939963aca9318446f593366db5058d0d6e1385f46eaf5c0a71dfc0f482cb1681492';
 
     //will need to convert to FormData object once decrypted server-side.
     //unfortunately, cannot directly encrypt FormData object client-side
     let encryptedFiles = [];
-
     await files.forEach(async (file, i) => {
-      let msg = [i, file];
-      let encryptedFile = await EthCrypto.encryptWithPublicKey(publicKey, msg);
-      encryptedFiles.push(encryptedFile);
+      let reader = new FileReader();
+      reader.onloadend = async () => {
+        let encryptedFile = await EthCrypto.encryptWithPublicKey(publicKey, reader.result);
+        encryptedFiles.push(encryptedFile);
+      }
+      reader.readAsDataURL(file);
     })
-    // console.log(encryptedFiles);
+
+      // let msg = [i, file];
+
     let box = await Box.openBox(context.account, window.ethereum);
     box.onSyncDone(async () => {
       const workSpace = await box.openSpace(contracts.accessControls.address.toString() + this.state.spaceId.toString());
@@ -86,8 +102,7 @@ class App extends Component{
       if (temp === undefined){
         temp = [];
       }
-      console.log(temp);
-        let newEncryptedFiles = temp.concat(encryptedFiles);
+      let newEncryptedFiles = temp.concat(encryptedFiles);
       await workSpace.public.set('files', newEncryptedFiles);
     })
   }
