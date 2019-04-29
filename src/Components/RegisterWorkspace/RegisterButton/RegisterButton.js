@@ -1,6 +1,6 @@
 import React from 'react';
 import { useWeb3Context } from 'web3-react';
-import styles from './CreateSpace.module.css';
+
 
 const CreateSpace = (props) => {
     const context = useWeb3Context();
@@ -9,7 +9,7 @@ const CreateSpace = (props) => {
 
     <button
         onClick={() => {props.clicked(context)}}>   
-        Create New Data Space
+        Register Your Slack Group
     </button>
 
     )

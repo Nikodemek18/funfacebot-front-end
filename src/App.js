@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
-import { ethers } from 'ethers';
+import { ethers, Wallet } from 'ethers';
 import Web3Provider from 'web3-react';
 import { Connectors } from 'web3-react';
 import Connect from './Components/Connect/Connect.jsx';
@@ -13,7 +13,9 @@ import Buttons from './Components/ImageUploads/Buttons/Buttons';
 import BoxStore from './Components/BoxStore/BoxStore';
 import EthCrypto from 'eth-crypto';
 import Box from '3box';
-import { callbackify } from 'util';
+import Web3 from 'web3';
+import RegisterButton from './Components/RegisterWorkspace/RegisterButton/RegisterButton'
+let sigUtil = require('eth-sig-util')
 
 
 
@@ -129,6 +131,50 @@ class App extends Component{
     this.setState({context: context})
   }
 
+  registerSlackWorkspaceHandler = async (context) => {
+    console.log(context);
+    let message = ethers.utils.defaultAbiCoder.encode(
+      [
+        'bytes1', 'bytes1', 'address', 'string', 'uint256'
+      ],
+      [
+        '0x19', '0x00', contracts.accessControls.address, 'Generate authorization code', this.state.spaceId
+      ]
+    );
+    const domain = [
+      { name: "arg", type: "bytes1" },
+      { name: "arg2", type: "bytes1" },
+      { name: "contractAddress", type: "address" },
+      { name: "message", type: "address" },
+      { name: "space", type: "uint256" }]
+
+
+    let data = JSON.stringify({
+      types: {EIP712Domain: domain},
+      message: message
+    })
+
+    await context.library._web3Provider.sendAsync(
+      {
+        method: "eth_signTypedData_v3",
+        params: [context.library.Wallet, data],
+        from: context.account.toString()
+      },
+      (err, result) => {
+        if(err) {
+          return console.error(err);
+        }
+        // const signature = result.result.substring(2);
+        // const r = "0x" + signature.substring(0, 64);
+        // const s = "0x" + signature.substring(64, 128);
+        // const v = parseInt(signature.substring(128, 130), 16);
+      }
+    )
+
+    this.setState({registering: true});
+
+  }
+
   render(){
 
     const {InjectedConnector} = Connectors;
@@ -181,6 +227,9 @@ class App extends Component{
           >
             <CreateSpace
               clicked={this.createSpaceHandler}
+            />
+            <RegisterButton
+              clicked={this.registerSlackWorkspaceHandler}
             />
             <br/>
             {spaceRender}
