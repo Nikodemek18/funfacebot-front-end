@@ -23,6 +23,21 @@
   color: #61dafb;
 }
 
+.PMessage{
+  font: garamond;
+  max-width: 300px;
+}
+
+.SecretCode{
+  font: garamond;
+  max-width: 300px;
+  word-wrap: break-word;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+  padding: 20px 20px;
+  transition: 0.3s;
+  margin: 3px;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import './App.css';
+import styles from './App.module.css';
 import { ethers, Wallet } from 'ethers';
 import Web3Provider from 'web3-react';
 import { Connectors } from 'web3-react';
@@ -13,9 +13,9 @@ import Buttons from './Components/ImageUploads/Buttons/Buttons';
 import BoxStore from './Components/BoxStore/BoxStore';
 import EthCrypto from 'eth-crypto';
 import Box from '3box';
-import Web3 from 'web3';
 import RegisterButton from './Components/RegisterWorkspace/RegisterButton/RegisterButton'
-let sigUtil = require('eth-sig-util')
+import { keccak256 } from 'web3-utils';
+import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 
 
@@ -27,7 +27,13 @@ class App extends Component{
     spaceId: null,
     whitelistAddress: null,
     uploading: false,
-    images: []
+    images: [],
+    registering: false,
+    userSecretCode: null,
+    copiedText: null,
+    copied: null,
+    copiedFlag: null,
+    timestamp: null
   }
 
   connectHandler = (context) =>{
@@ -52,7 +58,7 @@ class App extends Component{
   }
 
   addToWhitelistClickHandler = async (context) => {
-    let accessControlContract = new ethers.Contract(contracts.accessControls.address, contracts.accessControls.ABI, context.library.getSigner())
+    let accessControlContract = new ethers.Contract(contracts.accessControls.address, contracts.accessControls.ABI, context.library.getSigner());
     console.log(this.state.whitelistAddress)
     console.log(this.state.spaceId)
     
@@ -131,46 +137,36 @@ class App extends Component{
     this.setState({context: context})
   }
 
-  registerSlackWorkspaceHandler = async (context) => {
-    console.log(context);
-    let message = ethers.utils.defaultAbiCoder.encode(
-      [
-        'bytes1', 'bytes1', 'address', 'string', 'uint256'
-      ],
-      [
-        '0x19', '0x00', contracts.accessControls.address, 'Generate authorization code', this.state.spaceId
-      ]
+  registerSlackWorkspaceHandler = async (context, web3) => {
+
+    let accessControlContract = new ethers.Contract(contracts.accessControls.address, contracts.accessControls.ABI, context.library.getSigner());
+
+    let indexOfUser = await accessControlContract.getUserIndexInWhitelist(context.account, this.state.spaceId);
+    console.log(indexOfUser);
+      
+    await accessControlContract.commitSignatureTime(indexOfUser, this.state.spaceId);
+    let timestamp = await accessControlContract.getTimestamp(this.state.spaceId, context.account);
+    console.log(timestamp);
+    this.setState({timestamp: timestamp});
+
+    let msg = await web3.utils.keccak256(
+      '0x19', 
+      '0x00', 
+      contracts.accessControls.address, 
+      'Generate authorization code', 
+      this.state.spaceId.toString(),
+      timestamp.toString()
     );
-    const domain = [
-      { name: "arg", type: "bytes1" },
-      { name: "arg2", type: "bytes1" },
-      { name: "contractAddress", type: "address" },
-      { name: "message", type: "address" },
-      { name: "space", type: "uint256" }]
 
-
-    let data = JSON.stringify({
-      types: {EIP712Domain: domain},
-      message: message
-    })
-
-    await context.library._web3Provider.sendAsync(
-      {
-        method: "eth_signTypedData_v3",
-        params: [context.library.Wallet, data],
-        from: context.account.toString()
-      },
-      (err, result) => {
-        if(err) {
-          return console.error(err);
-        }
-        // const signature = result.result.substring(2);
-        // const r = "0x" + signature.substring(0, 64);
-        // const s = "0x" + signature.substring(64, 128);
-        // const v = parseInt(signature.substring(128, 130), 16);
+    web3.eth.personal.sign(msg, context.account, (err, res) => {
+      if(err){
+        console.log(err);
+      } else{
+        this.setState({userSecretCode: "register " + this.state.spaceId + 'x' + timestamp + context.account + res});
+        console.log(this.state.userSecretCode)
       }
-    )
-
+    });
+ 
     this.setState({registering: true});
 
   }
@@ -183,6 +179,7 @@ class App extends Component{
     const connectors = {MetaMask};
 
     let spaceRender;
+    let registeringMessage;
 
     const {uploading, images} = this.state;
 
@@ -204,6 +201,34 @@ class App extends Component{
     if(this.state.spaceId !== null){
       spaceRender = <p>Your Space ID is {this.state.spaceId}</p>;
     }
+    if (this.state.registering === true){
+      registeringMessage = <div>
+        <p
+          className={styles.PMessage}
+        >Your secret code is below. Send this code as a direct message to funfacebot in your slack channel to register your dataspace.</p>
+        <br/>
+        <p>Click in box to copy </p>
+        <CopyToClipboard 
+          text={this.state.userSecretCode}
+          onCopy={() => this.setState({copied: true, copiedFlag: true})}
+        >
+        <p
+          className={styles.SecretCode}
+        >{this.state.userSecretCode}</p>
+        </CopyToClipboard>
+      </div>
+
+  }
+
+    if(this.state.copiedFlag === true){
+      setTimeout( () => {
+        this.setState({copiedFlag: false})
+      }, 5000);
+    }
+    let copiedText;
+    if(this.state.copiedFlag === true){
+      copiedText = <p>Copied!</p>
+    }
 
     if (this.state.contextFlag === false){
       return(
@@ -219,6 +244,7 @@ class App extends Component{
         </Web3Provider>
       )
     }
+
     else {
       return (
         <Web3Provider
@@ -233,6 +259,10 @@ class App extends Component{
             />
             <br/>
             {spaceRender}
+            <br/>
+            <br/>
+            {registeringMessage}
+            {copiedText}
             <br/>
             <AddToWhitelist
               spaceIdChanged={this.spaceIdChangeHandler}
