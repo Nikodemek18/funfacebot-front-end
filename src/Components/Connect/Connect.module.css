@@ -1,0 +1,25 @@
+.MetamaskButton {
+    width: 500px; 
+    height: 88px;
+    margin:auto;
+    background-color: black;
+    color: white;
+    border-width: 10px;
+    border-color: aqua;
+    border-radius: 10px;
+    border-style: solid;
+    position: absolute;
+    top: 20%; 
+    justify-content: center;
+    opacity: 1;
+    transform: translateY(-50%);
+    padding: 0;
+    border: none;
+    align-items: center;
+    margin-left: 32%;
+    display: flex;
+    justify-content: center;
+    background-image: url('./../../Assets/MetaMask.svg');
+    background-repeat: repeat-y;
+    font-size: 150%;
+}

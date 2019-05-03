@@ -7,6 +7,9 @@
   height: 40vmin;
   pointer-events: none;
 }
+.Background{
+  background-color: black;
+}
 
 .App-header {
   background-color: #282c34;

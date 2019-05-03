@@ -14,8 +14,8 @@ import BoxStore from './Components/BoxStore/BoxStore';
 import EthCrypto from 'eth-crypto';
 import Box from '3box';
 import RegisterButton from './Components/RegisterWorkspace/RegisterButton/RegisterButton'
-import { keccak256 } from 'web3-utils';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
+import SecretCommand from './Components/RegisterWorkspace/SecretCommand/SecretCommand';
 
 
 
@@ -36,7 +36,7 @@ class App extends Component{
     timestamp: null
   }
 
-  connectHandler = (context) =>{
+  connectHandler = () => {
     this.setState({contextFlag: true})
   }
 
@@ -137,7 +137,7 @@ class App extends Component{
     this.setState({context: context})
   }
 
-  registerSlackWorkspaceHandler = async (context, web3) => {
+  registerSlackWorkspaceHandler = async (context) => {
 
     let accessControlContract = new ethers.Contract(contracts.accessControls.address, contracts.accessControls.ABI, context.library.getSigner());
 
@@ -145,30 +145,34 @@ class App extends Component{
     console.log(indexOfUser);
       
     await accessControlContract.commitSignatureTime(indexOfUser, this.state.spaceId);
-    let timestamp = await accessControlContract.getTimestamp(this.state.spaceId, context.account);
-    console.log(timestamp);
-    this.setState({timestamp: timestamp});
+    this.setState({registering: true});
+  }
 
-    let msg = await web3.utils.keccak256(
+  revealSecretCommandHandler = async (context, web3) => {
+    let accessControlContract = new ethers.Contract(contracts.accessControls.address, contracts.accessControls.ABI, context.library.getSigner());
+    let timestamp = await (accessControlContract.getTimestamp(this.state.spaceId, context.account));
+    this.setState({timestamp: timestamp});
+    console.log(timestamp);
+
+    let msg = await web3.utils.soliditySha3(
       '0x19', 
       '0x00', 
       contracts.accessControls.address, 
       'Generate authorization code', 
-      this.state.spaceId.toString(),
-      timestamp.toString()
+      this.state.spaceId,
+      timestamp
     );
+
+    
 
     web3.eth.personal.sign(msg, context.account, (err, res) => {
       if(err){
         console.log(err);
       } else{
-        this.setState({userSecretCode: "register " + this.state.spaceId + 'x' + timestamp + context.account + res});
+        this.setState({userSecretCode: "register " + this.state.spaceId + 'xx' + timestamp + context.account + res});
         console.log(this.state.userSecretCode)
       }
     });
- 
-    this.setState({registering: true});
-
   }
 
   render(){
@@ -180,6 +184,7 @@ class App extends Component{
 
     let spaceRender;
     let registeringMessage;
+    let secretCommand;
 
     const {uploading, images} = this.state;
 
@@ -205,7 +210,7 @@ class App extends Component{
       registeringMessage = <div>
         <p
           className={styles.PMessage}
-        >Your secret code is below. Send this code as a direct message to funfacebot in your slack channel to register your dataspace.</p>
+        >Your secret command is below. Send this command as a direct message to funfacebot in your slack channel to register your dataspace.</p>
         <br/>
         <p>Click in box to copy </p>
         <CopyToClipboard 
@@ -219,6 +224,12 @@ class App extends Component{
       </div>
 
   }
+
+    if(this.state.registering){
+      secretCommand = <SecretCommand
+        clicked={this.revealSecretCommandHandler}
+      />
+    }
 
     if(this.state.copiedFlag === true){
       setTimeout( () => {
@@ -240,7 +251,6 @@ class App extends Component{
             clicked={this.connectHandler}
             connection={connectors}
           />
-        
         </Web3Provider>
       )
     }
@@ -251,12 +261,16 @@ class App extends Component{
           connectors={connectors}
           libraryName={'ethers.js'}
           >
+          <div
+          className={styles.background}>
             <CreateSpace
               clicked={this.createSpaceHandler}
             />
             <RegisterButton
               clicked={this.registerSlackWorkspaceHandler}
             />
+            <br/>
+            {secretCommand}
             <br/>
             {spaceRender}
             <br/>
@@ -277,6 +291,7 @@ class App extends Component{
           <BoxStore
             clicked={this.boxHandler}
           />
+          </div>
       </Web3Provider>
 
 

@@ -1,19 +1,17 @@
 import React from 'react';
 import { useWeb3Context } from 'web3-react';
-import Web3 from 'web3';
 
 
-const CreateSpace = (props) => {
+const RegisterSpace = (props) => {
     const context = useWeb3Context();
-    const web3 = new Web3(Web3.givenProvider);
 
     return(
     <button
-        onClick={() => {props.clicked(context, web3)}}>   
+        onClick={() => {props.clicked(context)}}>   
         Register Your Slack Group
     </button>
 
     )
 }
 
-export default CreateSpace;
+export default RegisterSpace;
